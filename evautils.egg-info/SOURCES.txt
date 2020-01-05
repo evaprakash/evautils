@@ -1,0 +1,5 @@
+setup.py
+evautils.egg-info/PKG-INFO
+evautils.egg-info/SOURCES.txt
+evautils.egg-info/dependency_links.txt
+evautils.egg-info/top_level.txt

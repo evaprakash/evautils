@@ -1,0 +1,22 @@
+#!/users/eprakash/anaconda2/bin/python
+
+import deeplift
+from deeplift.layers import NonlinearMxtsMode
+import deeplift.conversion.kerasapi_conversion as kc
+reload(deeplift.layers)
+reload(deeplift.conversion.kerasapi_conversion)
+from collections import OrderedDict
+
+def kerasToDLModelConversion(keras_model, keras_weights):
+	method_to_model = OrderedDict()
+	for method_name, nonlinear_mxts_mode in [
+	    #The genomics default = rescale on conv layers, revealcance on fully-connected
+	    ('rescale_conv_revealcancel_fc', NonlinearMxtsMode.DeepLIFT_GenomicsDefault),
+	    ('rescale_all_layers', NonlinearMxtsMode.Rescale),
+	    ('revealcancel_all_layers', NonlinearMxtsMode.RevealCancel),
+	    ('grad_times_inp', NonlinearMxtsMode.Gradient),
+	    ('guided_backprop', NonlinearMxtsMode.GuidedBackprop)]:
+	    method_to_model[method_name] = kc.convert_model_from_saved_files(
+	        h5_file=keras_model_weights,
+	        json_file=keras_model_json,
+	        nonlinear_mxts_mode=nonlinear_mxts_mode)
