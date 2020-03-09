@@ -71,6 +71,12 @@ def prepareDLModel(weights, model):
 	        nonlinear_mxts_mode=nonlinear_mxts_mode)
 	return method_to_model
 
+def createDLModel(weights, model, nlmxtsmode):
+    return kc.convert_model_from_saved_files(
+                h5_file=weights,
+                json_file=model,
+                nonlinear_mxts_mode=nlmxtsmode)
+
 def sanityCheck(model_to_test, onehot_data, keras_model):
 	deeplift_prediction_func = compile_func([model_to_test.get_layers()[0].get_activation_vars()],
                                          model_to_test.get_layers()[-1].get_activation_vars())
@@ -83,3 +89,94 @@ def sanityCheck(model_to_test, onehot_data, keras_model):
 	print("maximum difference in predictions:",np.max(np.array(converted_model_predictions)-np.array(original_model_predictions)))
 	assert np.max(np.array(converted_model_predictions)-np.array(original_model_predictions)) < 10**-5
 	predictions = converted_model_predictions
+
+def sanityCheckGivenPredFunc(deeplift_prediction_func, onehot_data, keras_model):
+        original_model_predictions = keras_model.predict(onehot_data, batch_size=200)
+        converted_model_predictions = deeplift.util.run_function_in_batches(
+                                input_data_list=[onehot_data],
+                                func=deeplift_prediction_func,
+                                batch_size=200,
+                                progress_update=None)
+        print("maximum difference in predictions:",np.max(np.array(converted_model_predictions)-np.array(original_model_predictions)))
+        assert np.max(np.array(converted_model_predictions)-np.array(original_model_predictions)) < 10**-5
+        predictions = converted_model_predictions
+
+
+def list_wrapper(func):
+    def wrapped_func(input_data_list, **kwargs):
+        if (isinstance(input_data_list, list)):
+            remove_list_on_return=False
+        else:
+            remove_list_on_return=True
+            input_data_list = [input_data_list]
+        to_return = func(input_data_list=input_data_list,
+                         **kwargs)
+        return to_return
+    return wrapped_func
+
+def empty_ism_buffer(results_arr,
+                     input_data_onehot,
+                     perturbed_inputs_preds,
+                     perturbed_inputs_info):
+    for perturbed_input_pred,perturbed_input_info\
+        in zip(perturbed_inputs_preds, perturbed_inputs_info):
+        example_idx = perturbed_input_info[0]
+        if (perturbed_input_info[1]=="original"):
+            results_arr[example_idx] +=\
+                (perturbed_input_pred*input_data_onehot[example_idx])
+        else:
+            pos_idx,base_idx = perturbed_input_info[1]
+            results_arr[example_idx,pos_idx,base_idx] = perturbed_input_pred
+
+def make_ism_func(prediction_func,
+                  flank_around_middle_to_perturb,
+                  batch_size=200):
+    @list_wrapper
+    def ism_func(input_data_list, progress_update=10000, **kwargs):
+        assert len(input_data_list)==1
+        input_data_onehot=input_data_list[0]
+
+        results_arr = np.zeros_like(input_data_onehot).astype("float64")
+
+        perturbed_inputs_info = []
+        perturbed_onehot_seqs = []
+        perturbed_inputs_preds = []
+        num_done = 0
+        for i,onehot_seq in enumerate(input_data_onehot):
+            perturbed_onehot_seqs.append(onehot_seq)
+            perturbed_inputs_info.append((i,"original"))
+            for pos in range(int(len(onehot_seq)/2)-flank_around_middle_to_perturb,
+                             int(len(onehot_seq)/2)+flank_around_middle_to_perturb):
+                for base_idx in range(4):
+                    if onehot_seq[pos,base_idx]==0:
+                        assert len(onehot_seq.shape)==2
+                        new_onehot = np.zeros_like(onehot_seq) + onehot_seq
+                        new_onehot[pos,:] = 0
+                        new_onehot[pos,base_idx] = 1
+                        perturbed_onehot_seqs.append(new_onehot)
+                        perturbed_inputs_info.append((i,(pos,base_idx)))
+                        num_done += 1
+                        if ((progress_update is not None)
+                            and num_done%progress_update==0):
+                            print("Done",num_done)
+                        if (len(perturbed_inputs_info)>=batch_size):
+                            empty_ism_buffer(
+                                 results_arr=results_arr,
+                                 input_data_onehot=input_data_onehot,
+                                 perturbed_inputs_preds=
+                                  prediction_func([perturbed_onehot_seqs]),
+                                 perturbed_inputs_info=perturbed_inputs_info)
+                            perturbed_inputs_info = []
+                            perturbed_onehot_seqs = []
+        if (len(perturbed_inputs_info)>0):
+            empty_ism_buffer(
+                 results_arr=results_arr,
+                 input_data_onehot=input_data_onehot,
+                 perturbed_inputs_preds=
+                  prediction_func([perturbed_onehot_seqs]),
+                 perturbed_inputs_info=perturbed_inputs_info)
+        perturbed_inputs_info = []
+        perturbed_onehot_seqs = []
+        results_arr = results_arr - np.mean(results_arr,axis=-1)[:,:,None]
+        return input_data_onehot*results_arr
+    return ism_func

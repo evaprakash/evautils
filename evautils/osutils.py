@@ -4,8 +4,10 @@ import subprocess
 import os
 import shlex
 
-def runCommandRealTime(command, isShell=False):
+def runCommandRealTime(command, isShell=False, debug=True):
 	if (isShell):
+		if debug:
+			print("Executing command \"" + command + "\"")
 		process = subprocess.Popen(command,
                           shell=True,
 			  stdout=subprocess.PIPE,
@@ -13,6 +15,8 @@ def runCommandRealTime(command, isShell=False):
                           universal_newlines=True)
 	else:
 		args=shlex.split(command)
+		if debug:
+			print("Executing command \"" + str(args) + "\"")
 		process = subprocess.Popen(args,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT,
@@ -29,7 +33,12 @@ def runCommandRealTime(command, isShell=False):
                                 print(output.strip())
                         break
 
-#command = '/software/homer/default/bin/findMotifs.pl /users/eprakash/bctest/postest.fa fasta /users/eprakash/bctest/H1ESC_400_motifs -fasta /users/eprakash/bctest/matched_no_H1ESC_universal_dnase_400.fa'
-#command='ping -c 5 google.com'
-#args = shlex.split(command)
-#runCommandRealTime(args)
+def runCommandCaptureOutput(command, isShell=True, debug=True):
+    	if (debug):
+		print("Executing command \"" + command + "\"")
+	return subprocess.check_output(command, shell=isShell)
+
+def runCommand(command, debug=True):
+        if (debug):
+                print("Executing command \"" + command + "\"")
+        os.system(command)

@@ -4,11 +4,15 @@ import os
 import re
 import shutil
 
-def createDir(workingDir):
+def createDir(workingDir, mustcreate=True):
     if not os.path.exists(workingDir):
         os.mkdir(workingDir)
     else:
-        raise ValueError('Directory already exists')
+        if (mustcreate):
+            raise ValueError("Directory " + str(workingDir) + " already exists")
+        else:
+            print("Directory " + str(workingDir) + " already exists")
+
 
 def copyFileToWorkingDir(f, workingDir):
 	os.system('cp ' + f + ' ' + workingDir)

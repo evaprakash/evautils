@@ -15,7 +15,7 @@ def gc_content(seq):
     c_count=seq.lower().count('c')
     return float(g_count+c_count)/float(len(seq))
 
-def sample_matched_bqtls(bqtls_to_match, bqtls_to_sample, attrfunc):
+def sample_matched_bqtls(bqtls_to_match, bqtls_to_sample, attrfunc, display):
     #sort bqtls_to_sample by the attribute
     sorted_bqtls_to_sample = sorted([x for x in bqtls_to_sample
                                      if np.isnan(attrfunc(x))==False],
@@ -45,13 +45,15 @@ def sample_matched_bqtls(bqtls_to_match, bqtls_to_sample, attrfunc):
     matched_sampled_bqtls = [sorted_bqtls_to_sample[idx] for idx in sorted(matched_sampled_bqtls_indices)]
     
     #compare the two distributions to see if they match well
-    import seaborn as sns
-    sns.distplot([attrfunc(x) for x in bqtls_to_match], color='blue')
-    sns.distplot([attrfunc(x) for x in matched_sampled_bqtls], color='red')
-    plt.show()
+    if (display):
+        import seaborn as sns
+        sns.distplot([attrfunc(x) for x in bqtls_to_match], color='blue')
+        sns.distplot([attrfunc(x) for x in matched_sampled_bqtls], color='red')
+        plt.show()
+
     return matched_sampled_bqtls
 
-def match_gc_content(posFastaFile, negFastaFile, matchedNegFastaFile):
+def match_gc_content(posFastaFile, negFastaFile, matchedNegFastaFile, display=True):
 	pos_seqs_dict= sequtils.load_sequences(posFastaFile)
 	neg_seqs_dict= sequtils.load_sequences(negFastaFile)
 	pos_labels=pos_seqs_dict.keys()
@@ -65,7 +67,7 @@ def match_gc_content(posFastaFile, negFastaFile, matchedNegFastaFile):
 	for label in neg_labels:
 		neg_seqs.append(neg_seqs_dict[label])
 	
-	matched_sampled_negatives=sample_matched_bqtls(bqtls_to_match=pos_seqs, bqtls_to_sample=neg_seqs, attrfunc=gc_content)
+	matched_sampled_negatives=sample_matched_bqtls(bqtls_to_match=pos_seqs, bqtls_to_sample=neg_seqs, attrfunc=gc_content, display=display)
 	
 	random.shuffle(matched_sampled_negatives)
 	
@@ -84,7 +86,7 @@ def match_gc_content(posFastaFile, negFastaFile, matchedNegFastaFile):
         		fp.write(matched_neg_seqs[matched_seq_key]+'\n')
 	fp.close()
 
-def gc_sanity_check(posBedFile, negBedFile):
+def gc_sanity_check(posBedFile, negBedFile, display=True):
 	pos_seqs_dict= sequtils.load_sequences_from_bedfile(posBedFile)
         neg_seqs_dict= sequtils.load_sequences_from_bedfile(negBedFile)
         pos_labels=pos_seqs_dict.keys()
@@ -97,6 +99,6 @@ def gc_sanity_check(posBedFile, negBedFile):
         neg_seqs=[]
         for label in neg_labels:
                 neg_seqs.append(neg_seqs_dict[label])
-        matched_sampled_negatives=sample_matched_bqtls(bqtls_to_match=pos_seqs, bqtls_to_sample=neg_seqs, attrfunc=gc_content)
+        matched_sampled_negatives=sample_matched_bqtls(bqtls_to_match=pos_seqs, bqtls_to_sample=neg_seqs, attrfunc=gc_content, display=display)
 	os.system('gzip ' + posBedFile)
 	os.system('gzip ' + negBedFile)

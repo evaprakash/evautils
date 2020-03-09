@@ -8,6 +8,9 @@ import evautils
 from evautils import osutils
 from evautils import shuffle_sequences_add_motifs
 
+def summitCentering(regionSize, narrowPeaksFile, chromSizes, resultFile):
+    osutils.runCommandRealTime("zcat " + narrowPeaksFile + " | perl -lane 'print $F[0].\"\\t\".(($F[1]+$F[9])).\"\\t\".(($F[1]+$F[9]))' | bedtools slop -g " + chromSizes + " -b " + str(regionSize/2) + " | perl -lane 'if ($F[2]-$F[1]==" + str(regionSize) + ") {print $_}' | gzip -c > " + resultFile, isShell=True)
+
 def runCommandRealTime(command):
         print(command)
 	process = subprocess.Popen(command,

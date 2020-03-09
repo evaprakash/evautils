@@ -190,3 +190,17 @@ def load_sequences(seqfile):
         fp.close()
         print("#Loaded " + str(len(seqs.keys())) + " sequences from " + seqfile)
         return seqs
+
+def load_labels(labels_file):
+    f = open(labels_file, "r")
+    l = f.read().splitlines()
+    print ("Read " + str(len(l)) + " labels from " + str(labels_file))
+    f.close()
+    return l
+
+def save_labels(labeled_sequences, filename):
+    print(type(labeled_sequences))
+    with open(filename, "w") as ff:
+        for ss in labeled_sequences.keys():
+            ff.write(str(ss) +"\n")
+    ff.close()
