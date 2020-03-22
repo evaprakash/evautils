@@ -25,10 +25,6 @@ def get_auroc_auprc(data_filename_positive, data_filename_negative, model_file, 
     pos_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_positive)
     neg_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_negative)
     
-    #Does the filtering on the same dict itself instead of creating a new filtered dict
-    #sequtils.removeUnsupportedChars(pos_sequences_dict.values(), pos_sequences_dict.keys(), pos_sequences_dict)
-    #sequtils.removeUnsupportedChars(neg_sequences_dict.values(), neg_sequences_dict.keys(), neg_sequences_dict)
-    
     pos_list = list(pos_sequences_dict.values())
     neg_list = list(neg_sequences_dict.values())
     sequence_list = pos_list + neg_list
