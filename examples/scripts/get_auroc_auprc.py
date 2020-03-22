@@ -14,7 +14,7 @@ def get_aucs(preds, true_labels):
     auprc = average_precision_score(y_true=true_labels, y_score=preds)
     return auroc, auprc
 
-def get_true_labels(sequence_list, pos_list, neg_list):
+def get_true_labels(pos_list, neg_list):
     labels = [1 for seq in pos_list] + [0 for seq in neg_list]
     return labels
 
