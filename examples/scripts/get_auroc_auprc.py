@@ -15,8 +15,7 @@ def get_aucs(preds, true_labels):
     return auroc, auprc
 
 def get_true_labels(sequence_list, pos_list, neg_list):
-    for seq in sequence_list:
-        labels = [1 for seq in pos_list] + [0 for seq in neg_list]
+    labels = [1 for seq in pos_list] + [0 for seq in neg_list]
     return labels
 
 def get_preds(onehot_data, keras_model):
