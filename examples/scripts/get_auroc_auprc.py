@@ -9,7 +9,6 @@ from sklearn.metrics import average_precision_score
 import argparse
 import re
 
-
 def get_aucs(preds, true_labels):
     auroc = roc_auc_score(y_true=true_labels, y_score=preds)
     auprc = average_precision_score(y_true=true_labels, y_score=preds)
@@ -28,24 +27,18 @@ def get_auroc_auprc(data_filename_positive, data_filename_negative, model_file, 
     neg_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_negative)
     
     #Does the filtering on the same dict itself instead of creating a new filtered dict
-    sequtils.removeUnsupportedChars(pos_sequences_dict.values(), pos_sequences_dict.keys(), pos_sequences_dict)
-    sequtils.removeUnsupportedChars(neg_sequences_dict.values(), neg_sequences_dict.keys(), neg_sequences_dict)
+    #sequtils.removeUnsupportedChars(pos_sequences_dict.values(), pos_sequences_dict.keys(), pos_sequences_dict)
+    #sequtils.removeUnsupportedChars(neg_sequences_dict.values(), neg_sequences_dict.keys(), neg_sequences_dict)
     
     pos_list = list(pos_sequences_dict.values())
     neg_list = list(neg_sequences_dict.values())
-
-
     sequence_list = pos_list + neg_list
 
-
     onehot_data = np.array([sequtils.one_hot_encode_along_channel_axis(seq) for seq in sequence_list])
-
     keras_model = kerasutils.load_keras_model_using_json(model_file, weights_file)
-
     preds = get_preds(onehot_data, keras_model)
 
     labels = get_true_labels(sequence_list, pos_list, neg_list)
-
     auroc, auprc = get_aucs(preds, labels)
 
     print("auROC: " + str(auroc))
