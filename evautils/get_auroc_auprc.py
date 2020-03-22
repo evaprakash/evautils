@@ -7,48 +7,46 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import average_precision_score
 import argparse
+import re
+
 
 def get_aucs(preds, true_labels):
     auroc = roc_auc_score(y_true=true_labels, y_score=preds)
     auprc = average_precision_score(y_true=true_labels, y_score=preds)
     return auroc, auprc
 
-def get_true_labels(labels, positive_labels, negative_labels):
-    true_labels=[]
-    for label in labels:
-        if label in positive_labels:
-            true_labels.append(1)
-        elif label in negative_labels:
-            true_labels.append(0)
-        else:
-            continue
-    return true_labels
+def get_true_labels(sequence_list, pos_list, neg_list):
+    for seq in sequence_list:
+        labels = [1 for seq in pos_list] + [0 for seq in neg_list]
+    return labels
 
 def get_preds(onehot_data, keras_model):
     return keras_model.predict(onehot_data)
 
 def get_auroc_auprc(data_filename_positive, data_filename_negative, model_file, weights_file):
-    labeled_pos_sequences = sequtils.load_sequences_from_bedfile(data_filename_positive)
-    labeled_neg_sequences = sequtils.load_sequences_from_bedfile(data_filename_negative)
-    labeled_sequences = {}
-    labeled_sequences.update(labeled_pos_sequences)
-    labeled_sequences.update(labeled_neg_sequences)
-    positive_labels = labeled_pos_sequences.keys()
-    negative_labels = labeled_neg_sequences.keys()
-    labels = labeled_sequences.keys()
-    sequences = labeled_sequences.values()
+    pos_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_positive)
+    neg_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_negative)
     
-    sequtils.removeUnsupportedChars(sequences, labels, labeled_sequences)
+    #Does the filtering on the same dict itself instead of creating a new filtered dict
+    sequtils.removeUnsupportedChars(pos_sequences_dict.values(), pos_sequences_dict.keys(), pos_sequences_dict)
+    sequtils.removeUnsupportedChars(neg_sequences_dict.values(), neg_sequences_dict.keys(), neg_sequences_dict)
+    
+    pos_list = list(pos_sequences_dict.values())
+    neg_list = list(neg_sequences_dict.values())
 
-    onehot_data = np.array([sequtils.one_hot_encode_along_channel_axis(seq) for seq in sequences])
 
-    keras_model=kerasutils.load_keras_model_using_json(model_file, weights_file)
+    sequence_list = pos_list + neg_list
+
+
+    onehot_data = np.array([sequtils.one_hot_encode_along_channel_axis(seq) for seq in sequence_list])
+
+    keras_model = kerasutils.load_keras_model_using_json(model_file, weights_file)
 
     preds = get_preds(onehot_data, keras_model)
 
-    true_labels=get_true_labels(labels, positive_labels, negative_labels)
+    labels = get_true_labels(sequence_list, pos_list, neg_list)
 
-    auroc, auprc = get_aucs(preds, true_labels)
+    auroc, auprc = get_aucs(preds, labels)
 
     print("auROC: " + str(auroc))
     print("auPRC: " + str(auprc))

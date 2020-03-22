@@ -154,8 +154,8 @@ def load_sequences_from_bedfile(seqfile):
     fp = gzip.open(seqfile, "rb")
     print("#Loading " + seqfile + " ...")
     for line in fp:
-        (label, sequence)=line.split()
-        seqs[label]=sequence
+        parsed = line.split()
+        seqs[parsed[0]]=parsed[1]
     fp.close()
     print("#Loaded " + str(len(seqs.keys())) + " sequences from " + seqfile)
     return seqs
