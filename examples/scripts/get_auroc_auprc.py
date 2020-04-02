@@ -21,7 +21,8 @@ def get_true_labels(pos_list, neg_list):
 def get_preds(onehot_data, keras_model):
     return keras_model.predict(onehot_data)
 
-def get_auroc_auprc(data_filename_positive, data_filename_negative, model_file, weights_file):
+def get_auroc_auprc(data_filename_positive, data_filename_negative, model_file, weights_file, output_file):
+    outfile = open(output_file, "w")
     pos_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_positive)
     neg_sequences_dict = sequtils.load_sequences_from_bedfile(data_filename_negative)
     
@@ -33,16 +34,18 @@ def get_auroc_auprc(data_filename_positive, data_filename_negative, model_file, 
     keras_model = kerasutils.load_keras_model_using_json(model_file, weights_file)
     preds = get_preds(onehot_data, keras_model)
 
-    labels = get_true_labels(sequence_list, pos_list, neg_list)
+    labels = get_true_labels(pos_list, neg_list)
     auroc, auprc = get_aucs(preds, labels)
 
-    print("auROC: " + str(auroc))
-    print("auPRC: " + str(auprc))
+    outfile.write("auROC: " + str(auroc) + "\n")
+    outfile.write("auPRC: " + str(auprc) + "\n")
+    outfile.close()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("pos_file", type=str, help="Positive sequence gzipped bed file")
 parser.add_argument("neg_file", type=str, help="Negative sequence gzipped bed file")
 parser.add_argument("model_file", type=str, help="Model file")
 parser.add_argument("weights_file", type=str, help="Weights file")
+parser.add_argument("output_file", type=str, help="Output file")
 args = parser.parse_args()
-get_auroc_auprc(args.pos_file, args.neg_file, args.model_file, args.weights_file)
+get_auroc_auprc(args.pos_file, args.neg_file, args.model_file, args.weights_file, args.output_file)
